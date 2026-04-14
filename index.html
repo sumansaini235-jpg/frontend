@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MNIST Digit Classifier</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f5f7fb, #e9eefb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .container {
+      width: 100%;
+      max-width: 960px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    }
+    .left h1 {
+      font-size: 2rem;
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+    .left p {
+      color: #4b5563;
+      line-height: 1.6;
+      margin-bottom: 22px;
+    }
+    .api-box {
+      background: #f8fafc;
+      border: 1px solid #dbe3f0;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 18px;
+    }
+    .api-box label {
+      display: block;
+      font-size: 0.92rem;
+      color: #374151;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    .api-box input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      outline: none;
+      font-size: 0.95rem;
+    }
+    .drop-zone {
+      border: 2px dashed #94a3b8;
+      border-radius: 18px;
+      padding: 28px;
+      text-align: center;
+      background: #f8fbff;
+      transition: 0.25s ease;
+      cursor: pointer;
+    }
+    .drop-zone.dragover {
+      border-color: #2563eb;
+      background: #eff6ff;
+      transform: scale(1.01);
+    }
+    .drop-zone p {
+      color: #475569;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+    .drop-zone strong {
+      color: #111827;
+      font-size: 1rem;
+    }
+    .file-input { display: none; }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 0.96rem;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+    .primary-btn {
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+    }
+    .primary-btn:hover { background: #1d4ed8; }
+    .secondary-btn {
+      background: #e5e7eb;
+      color: #111827;
+      font-weight: bold;
+    }
+    .secondary-btn:hover { background: #d1d5db; }
+    .preview-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+    }
+    .preview-title {
+      font-size: 1.2rem;
+      color: #1f2937;
+      margin-bottom: 18px;
+      font-weight: bold;
+    }
+    .preview-frame {
+      width: 260px;
+      height: 260px;
+      border-radius: 20px;
+      background: #f8fafc;
+      border: 1px solid #dbe3f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .preview-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .placeholder {
+      color: #6b7280;
+      text-align: center;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .result-card {
+      width: 100%;
+      background: linear-gradient(135deg, #eef4ff, #f8fbff);
+      border: 1px solid #dbeafe;
+      border-radius: 16px;
+      padding: 18px;
+      margin-top: 8px;
+      display: none;
+    }
+    .result-card h2 {
+      font-size: 1.1rem;
+      color: #1e3a8a;
+      margin-bottom: 10px;
+    }
+    .result-item {
+      margin-bottom: 8px;
+      color: #1f2937;
+      font-size: 1rem;
+    }
+    .digit-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #2563eb;
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .status {
+      margin-top: 14px;
+      min-height: 24px;
+      font-size: 0.95rem;
+      color: #374151;
+    }
+    .error { color: #b91c1c; }
+    .success { color: #166534; }
+    @media (max-width: 860px) {
+      .container { grid-template-columns: 1fr; }
+      .preview-frame { width: 220px; height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card left">
+      <h1>MNIST Digit Classifier</h1>
+      <p>Upload a handwritten digit image and get an instant prediction from your FastAPI model.</p>
+
+      <div class="api-box">
+        <label for="apiUrl">Backend API URL</label>
+        <input id="apiUrl" type="text" value="https://https://ssbackend-3u3g.onrender.com/predict" placeholder="https://https://ssbackend-3u3g.onrender.com/predict" />
+      </div>
+
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" class="file-input" accept="image/*" />
+        <strong>Drag & drop your image here</strong>
+        <p>or click to choose a handwritten digit image</p>
+      </div>
+
+      <div class="btn-row">
+        <button class="primary-btn" id="predictBtn">Predict Digit</button>
+        <button class="secondary-btn" id="clearBtn">Clear</button>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="card preview-box">
+      <div class="preview-title">Image Preview & Result</div>
+      <div class="preview-frame">
+        <div class="placeholder" id="placeholder">No image selected yet</div>
+        <img id="previewImage" alt="Preview" style="display:none;" />
+      </div>
+
+      <div class="result-card" id="resultCard">
+        <h2>Prediction Result</h2>
+        <div class="result-item"><strong>File:</strong> <span id="resultFile">-</span></div>
+        <div class="result-item"><strong>Predicted Digit:</strong></div>
+        <div class="digit-badge" id="resultDigit">0</div>
+        <div class="result-item" style="margin-top:12px;"><strong>Confidence:</strong> <span id="resultConfidence">0%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const previewImage = document.getElementById("previewImage");
+    const placeholder = document.getElementById("placeholder");
+    const predictBtn = document.getElementById("predictBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const statusBox = document.getElementById("status");
+    const apiUrlInput = document.getElementById("apiUrl");
+    const resultCard = document.getElementById("resultCard");
+    const resultFile = document.getElementById("resultFile");
+    const resultDigit = document.getElementById("resultDigit");
+    const resultConfidence = document.getElementById("resultConfidence");
+
+    let selectedFile = null;
+
+    function setStatus(message, type = "") {
+      statusBox.textContent = message;
+      statusBox.className = "status " + type;
+    }
+
+    function showPreview(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImage.src = e.target.result;
+        previewImage.style.display = "block";
+        placeholder.style.display = "none";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetUI() {
+      selectedFile = null;
+      fileInput.value = "";
+      previewImage.src = "";
+      previewImage.style.display = "none";
+      placeholder.style.display = "block";
+      resultCard.style.display = "none";
+      setStatus("");
+    }
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        selectedFile = file;
+        showPreview(file);
+        resultCard.style.display = "none";
+        setStatus("Image selected: " + file.name, "success");
+      }
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith("image/")) {
+        selectedFile = file;
+        showPreview(file);
+        resultCard.style.display = "none";
+        setStatus("Image selected: " + file.name, "success");
+      } else {
+        setStatus("Please upload a valid image file.", "error");
+      }
+    });
+
+    predictBtn.addEventListener("click", async () => {
+      if (!selectedFile) {
+        setStatus("Please select an image first.", "error");
+        return;
+      }
+
+      const apiUrl = apiUrlInput.value.trim();
+      if (!apiUrl) {
+        setStatus("Please enter your backend API URL.", "error");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      try {
+        setStatus("Predicting...");
+        predictBtn.disabled = true;
+        predictBtn.textContent = "Predicting...";
+
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Prediction failed.");
+        }
+
+        resultFile.textContent = data.filename || selectedFile.name;
+        resultDigit.textContent = data.predicted_digit;
+        const confidence = data.confidence !== undefined
+          ? (Number(data.confidence) * 100).toFixed(2) + "%"
+          : "N/A";
+        resultConfidence.textContent = confidence;
+
+        resultCard.style.display = "block";
+        setStatus("Prediction completed successfully.", "success");
+      } catch (error) {
+        setStatus(error.message || "Something went wrong while predicting.", "error");
+      } finally {
+        predictBtn.disabled = false;
+        predictBtn.textContent = "Predict Digit";
+      }
+    });
+
+    clearBtn.addEventListener("click", resetUI);
+  </script>
+</body>
+</html>
