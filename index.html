@@ -341,7 +341,7 @@
         }
 
         resultFile.textContent = data.filename || selectedFile.name;
-        resultDigit.textContent = data.predicted_digit;
+        resultDigit.textContent = data.prediction;
         const confidence = data.confidence !== undefined
           ? (Number(data.confidence) * 100).toFixed(2) + "%"
           : "N/A";
